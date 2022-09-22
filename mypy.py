@@ -24,35 +24,6 @@ from sklearn.model_selection import (KFold, ShuffleSplit, StratifiedKFold,
                                      learning_curve, train_test_split)
 
 
-def plot_decision_regions(X, y, classifier, test_idx=None, res=0.02):
-    markers = ('s', 'x', 'o', '^', 'v')
-    cmap = cm.get_cmap('rainbow')
-    colors = []
-    for i in np.arange(0.1, 1.0, 0.1):
-        colors.append(cmap(i))
-    cmap = ListedColormap(colors[:len(np.unique(y))])
-
-    x1_min, x1_max = X[:, 0].min() - 1, X[:, 0].max() + 1
-    x2_min, x2_max = X[:, 1].min() - 1, X[:, 1].max() + 1
-    xx1, xx2 = np.meshgrid(np.arange(x1_min, x1_max, res),
-                           np.arange(x2_min, x2_max, res))
-    Z = classifier.predict(np.array([xx1.ravel(), xx2.ravel()]).T)
-    Z = Z.reshape(xx1.shape)
-    plt.contourf(xx1, xx2, Z, alpha=0.1, cmap=cmap)
-    plt.xlim(xx1.min(), xx1.max())
-    plt.ylim(xx2.min(), xx2.max())
-    for idx, cl in enumerate(np.unique(y)):
-        plt.scatter(X[y == cl, 0],
-                    X[y == cl, 1],
-                    marker=markers[idx],
-                    c=np.array(colors[idx]).reshape(1, -1),
-                    alpha=0.6,
-                    label=cl,
-                    edgecolor='black')
-    plt.legend(loc='best')
-    plt.show()
-
-
 def binary_classif_metrics(conf_matrix,
                            class_labels=[0, 1],
                            plot_cm=True,
@@ -287,26 +258,6 @@ def plot_kmeans_sse_elbow(X, k=2, random_state=None):
     plt.show()
 
 
-def fetch_load_tgz_data(url, file_name, csv_file_name, folder_name=None):
-    if folder_name is not None:
-        path = os.path.join('data', folder_name)
-        os.makedirs(path, exist_ok=True)
-    else:
-        path = os.getcwd()
-    save_path = os.path.join(path, file_name)
-    urllib.request.urlretrieve(url, save_path)
-    file = tarfile.open(save_path)
-    file.extractall(path=path)
-    file.close()
-    csv_path = os.path.join(path, csv_file_name)
-    return pd.read_csv(csv_path)
-
-
-# Example:
-# url = "https://raw.githubusercontent.com/ageron/handson-ml2/master/datasets/housing/housing.tgz"
-# fetch_load_tgz_data(u, 'housing.tgz', 'housing.csv')
-
-
 def plot_feature_importance(model, X):
     """ Plot feature importance for Random Forest and SVM classifiers and
     regressors. """
@@ -366,11 +317,6 @@ def plot_rf_estimators(X,
     plt.show
 
 
-
-
-
-
-
 def get_perf_measures(y_actual, y_hat, return_rates=False):
     TP, FP, TN, FN = 0, 0, 0, 0
 
@@ -390,134 +336,6 @@ def get_perf_measures(y_actual, y_hat, return_rates=False):
         return (FPR, TPR)
     else:
         return (TP, FP, TN, FN)
-
-
-
-
-def plot_precision_recall_curve(fitted_model,
-                                X,
-                                model_name='Model',
-                                ravel_X=False):
-    if ravel_X:
-        y_pred = fitted_model.predict(X.ravel())
-        y_proba = fitted_model.predict_proba(X.ravel())
-    else:
-        y_pred = fitted_model.predict(X)
-        y_proba = fitted_model.predict_proba(X)
-
-    # keep probabilities for the positive outcome only
-    y_proba = y_proba[:, 1]
-    # predict class values
-    precision, recall, _ = precision_recall_curve(y_val, y_proba)
-    clf_f1, clf_auc = f1_score(y_val, y_pred), auc(recall, precision)
-    r, p = recall_score(y_val, y_pred), precision_score(y_val, y_pred)
-    # plot the precision-recall curves
-    no_skill = len(y_val[y_val == 1]) / len(y_val)
-    plt.plot([0, 1.05], [no_skill, no_skill], linestyle='--', label='No Skill')
-    plt.plot(recall, precision, label=model_name)
-    # plot indicator
-    plt.vlines(x=r, ymin=no_skill, ymax=p, color='r', linestyles='dotted')
-    plt.hlines(y=p, xmin=0, xmax=r, color='r', linestyles='dotted')
-    plt.plot(r, p, marker='o', markersize=6, color="r")
-    # axis and labels
-    plt.title('{} Precision/Recall Curve: f1={:.3f}, auc={:.3f}'.format(
-        model_name, clf_f1, clf_auc))
-    plt.xlabel('Recall')
-    plt.ylabel('Precision')
-    plt.xlim(0, 1.05)
-    plt.ylim(no_skill - 0.05, 1.05)
-    # show the legend
-    plt.legend(loc='best')
-    # show the plot
-    plt.show()
-
-
-def plot_roc_curve(fitted_model, X, y, model_name='Model', ravel_X=False):
-    if ravel_X:
-        y_pred = fitted_model.predict(X.ravel())
-        y_proba = fitted_model.predict_proba(X.ravel())
-    else:
-        y_pred = fitted_model.predict(X)
-        y_proba = fitted_model.predict_proba(X)
-
-    # keep probabilities for the positive outcome only
-    y_proba = y_proba[:, 1]
-    # generate a no skill prediction (majority class)
-    ns_probs = [0 for _ in range(len(y))]
-    # calculate scores
-    ns_auc = roc_auc_score(y, ns_probs)
-    clf_auc = roc_auc_score(y, y_proba)
-    model_fpr, model_tpr = get_perf_measures(y, y_pred, return_rates=True)
-    # calculate roc curves
-    ns_fpr, ns_tpr, _ = roc_curve(y, ns_probs)
-    clf_fpr, clf_tpr, _ = roc_curve(y, y_proba)
-    # plot the roc curve for the model
-    plt.plot(ns_fpr, ns_tpr, linestyle='--', label='No Skill')
-    plt.plot(clf_fpr, clf_tpr, label=model_name)
-    # plot indicator
-    plt.vlines(x=model_fpr,
-               ymin=0,
-               ymax=model_tpr,
-               color='r',
-               linestyles='dotted')
-    plt.hlines(y=model_tpr,
-               xmin=model_fpr,
-               xmax=1,
-               color='r',
-               linestyles='dotted')
-    plt.plot(model_fpr, model_tpr, marker='o', markersize=6, color="r")
-    # axis labels
-    plt.title('{} ROC Curve: No Skill AUC={:.3f}, Model AUC={:.3f}'.format(
-        model_name, ns_auc, clf_auc))
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.ylim(0, 1.05)
-    plt.xlim(-0.05, 1)
-    # show the legend
-    plt.legend(loc='lower right')
-    # show the plot
-    plt.show()
-
-
-def plot_residuals(model,
-                   X_train,
-                   X_test,
-                   y_train,
-                   y_test,
-                   train_data=True,
-                   test_data=True):
-    if not train_data and not test_data:
-        raise ValueError('train_data and/or test_data must be True')
-
-    model.fit(X_train, y_train)
-    if train_data:
-        y_train_pred = model.predict(X_train)
-        y_train_mse = mean_squared_error(y_train, y_train_pred)
-        y_train_r2 = r2_score(y_train, y_train_pred)
-        plt.scatter(y_train_pred,
-                    y_train_pred - y_train,
-                    alpha=0.7,
-                    label='Training data, MSE={:.2f} R2={:.2f}'.format(
-                        y_train_mse, y_train_r2))
-    if test_data:
-        y_test_pred = model.predict(X_test)
-        y_test_mse = mean_squared_error(y_test, y_test_pred)
-        y_test_r2 = r2_score(y_test, y_test_pred)
-        plt.scatter(y_test_pred,
-                    y_test_pred - y_test,
-                    alpha=0.7,
-                    label='Test data, MSE={:.2f} R2={:.2f}'.format(
-                        y_test_mse, y_test_r2))
-
-    plt.xlabel('Predicted values')
-    plt.ylabel('Residuals')
-    plt.legend(loc='best')
-    xmin = min(y_train_pred.min(), y_test_pred.min())
-    xmax = max(y_train_pred.max(), y_test_pred.max())
-    plt.hlines(y=0, xmin=xmin, xmax=xmax, lw=2, color='black')
-    plt.xlim([xmin, xmax])
-    plt.tight_layout()
-    plt.show()
 
 
 def scale(X, how='std'):
@@ -860,68 +678,6 @@ def get_transformer_feature_names(columnTransformer):
     return output_features
 
 
-# Sequential backward feature selection
-class SBS(TransformerMixin):
-    def __init__(self,
-                 estimator,
-                 k_features,
-                 scoring=accuracy_score,
-                 test_size=0.25,
-                 random_state=1):
-        self.scoring = scoring
-        self.estimator = clone(estimator)
-        self.k_features = k_features
-        self.test_size = test_size
-        self.random_state = random_state
-
-    def fit(self, X, y):
-        if isinstance(X, pd.DataFrame):
-            X = X.values
-        if isinstance(y, pd.DataFrame):
-            y = y.values
-
-        X_train, X_test, y_train, y_test = \
-            train_test_split(X, y, test_size=self.test_size,
-                             random_state=self.random_state)
-
-        dim = X_train.shape[1]
-        self.indices_ = tuple(range(dim))
-        self.subsets_ = [self.indices_]
-        score = self._calc_score(X_train, y_train, X_test, y_test,
-                                 self.indices_)
-        self.scores_ = [score]
-
-        while dim > self.k_features:
-            scores = []
-            subsets = []
-
-            for p in combinations(self.indices_, r=dim - 1):
-                score = self._calc_score(X_train, y_train, X_test, y_test, p)
-                scores.append(score)
-                subsets.append(p)
-
-            best = np.argmax(scores)
-            self.indices_ = subsets[best]
-            self.subsets_.append(self.indices_)
-            dim -= 1
-
-            self.scores_.append(scores[best])
-
-        self.k_score_ = self.scores_[-1]
-
-        return self
-
-    def transform(self, X):
-        return X[:, self.indices_]
-
-    def _calc_score(self, X_train, y_train, X_test, y_test, indices):
-        self.estimator.fit(X_train[:, indices], y_train)
-        y_pred = self.estimator.predict(X_test[:, indices])
-        score = self.scoring(y_test, y_pred)
-        return score
-
-
-
 
 def plot_ideal_k(k=3, X=None, y=None, cv=3):
     mean_acc, std_acc = [], []
@@ -951,63 +707,6 @@ def plot_ideal_k(k=3, X=None, y=None, cv=3):
     plt.ylabel('Accuracy ')
     plt.xlabel('Number of Neighbors (k)')
     plt.tight_layout()
-
-
-def plot_kmeans_clusters():
-    # Initialize the plot with the specified dimensions.
-    fig = plt.figure(figsize=(6, 4))
-
-    # Colors uses a color map, which will produce an array of colors based on
-    # the number of labels there are. We use set(k_means_labels) to get the
-    # unique labels.
-    colors = plt.cm.Spectral(np.linspace(0, 1, len(set(k_means_labels))))
-
-    # Create a plot
-    ax = fig.add_subplot(1, 1, 1)
-
-    # For loop that plots the data points and centroids.
-    # k will range from 0-3, which will match the possible clusters that each
-    # data point is in.
-    for k, col in zip(range(len([[4,4], [-2, -1], [2, -3], [1, 1]])), colors):
-
-        # Create a list of all data points, where the data poitns that are
-        # in the cluster (ex. cluster 0) are labeled as true, else they are
-        # labeled as false.
-        my_members = (k_means_labels == k)
-
-        # Define the centroid, or cluster center.
-        cluster_center = k_means_cluster_centers[k]
-
-        # Plots the datapoints with color col.
-        ax.plot(X[my_members, 0], X[my_members, 1], 'w', markerfacecolor=col, marker='.')
-
-        # Plots the centroids with specified color, but with a darker outline
-        ax.plot(cluster_center[0], cluster_center[1], 'o', markerfacecolor=col,  markeredgecolor='k', markersize=6)
-
-    # Title of the plot
-    ax.set_title('KMeans')
-    # Remove axis ticks
-    ax.set_xticks(())
-    ax.set_yticks(())
-    # Show the plot
-    plt.show()
-
-    ##
-    3D:
-    from mpl_toolkits.mplot3d import Axes3D
-fig = plt.figure(1, figsize=(8, 6))
-plt.clf()
-ax = Axes3D(fig, rect=[0, 0, .95, 1], elev=48, azim=134)
-
-plt.cla()
-# plt.ylabel('Age', fontsize=18)
-# plt.xlabel('Income', fontsize=16)
-# plt.zlabel('Education', fontsize=16)
-ax.set_xlabel('Education')
-ax.set_ylabel('Age')
-ax.set_zlabel('Income')
-
-ax.scatter(X[:, 1], X[:, 0], X[:, 3], c= labels.astype(np.float))
 
 
 def train_val_test_split(X, y, test_size=0.1, val_size=0.2):
